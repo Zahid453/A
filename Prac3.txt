@@ -1,0 +1,39 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+from tensorflow import keras
+from tensorflow.keras import layers, Sequential
+from tensorflow.keras.layers import Dense
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+
+df = pd.read_csv("/content/Prac 03 -- Admission Prediction.csv")
+df
+
+df.drop(['Serial No.'], axis=1, inplace=True)
+
+x = df.iloc[:, 0:7]
+y = df['Chance of Admit ']
+
+x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.2, random_state = 42)
+
+sns.boxplot(data=x)
+
+scalar = MinMaxScaler()
+x_train = scalar.fit_transform(x_train)
+x_test = scalar.transform(x_test)
+
+model = Sequential()
+model.add(Dense(3, activation='relu',input_dim=7))
+model.add(Dense(2, activation='relu'))
+model.add(Dense(1, activation='linear'))
+model.summary()
+
+model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+model.fit(x_train,y_train,epochs=100,batch_size=10,verbose=1)
+
+yp = model.predict(x_test)
+from sklearn.metrics import r2_score
+r2_score(y_test,yp)
+

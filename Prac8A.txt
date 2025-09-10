@@ -1,0 +1,47 @@
+import keras
+from keras import layers, Input, Model
+from keras.layers import Dense
+from tensorflow.keras.datasets import mnist
+import numpy as np
+from tensorflow.keras.utils import plot_model
+
+
+encoding_laten = 32
+input_img = Input(shape=(784,))
+encoded = Dense(encoding_laten, activation='relu')(input_img)
+decoded = Dense(784, activation='sigmoid')(encoded)
+
+
+ Creates the full autoencoder model that takes the input image, compresses it, and reconstructs it.
+autoencoder = Model(input_img,decoded)
+# Creates only the encoder model, which outputs the compressed (latent) representation.
+encoder = Model(input_img,encoded)
+
+# This code creates a new input for the latent space and reuses the last layer of the autoencoder (the decoder layer) to rebuild data from the compressed representation.
+encoded_input = Input(shape=(encoding_laten,))
+decode_layer = autoencoder.layers[-1]
+
+# This code builds the decoder model using the latent input and compiles the autoencoder with Adam optimizer and binary crossentropy loss for training
+decoder = Model(encoded_input, decode_layer(encoded_input))
+autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
+
+# Getting Summry of model
+autoencoder.summary()
+
+
+plot_model(autoencoder, to_file="model.png", show_shapes=True, show_layer_names=True)
+
+
+
+(x_train, _), (x_test, _) = mnist.load_data()
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+print(x_train.shape)
+print(x_test.shape)
+
+
+autoencoder.fit(x_train, x_train, epochs=100, batch_size=256, shuffle=True, validation_data=(x_test, x_test))
+encode_imgs= encoder.predict(x_test)
+decode_imgs= decoder.predict(encode_imgs)

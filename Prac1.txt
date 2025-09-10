@@ -1,0 +1,30 @@
+# Import Required Libraries
+import pandas as pd
+import numpy as np
+import seaborn as sns
+from sklearn.linear_model import Perceptron
+from mlxtend.plotting import plot_decision_regions
+import matplotlib.pyplot as plt
+
+ata = {
+    'x1' : [1,1,0,0],
+    'x2' : [1,0,1,0],
+    'and' : [1,0,0,0],
+    'or' : [1,1,1,0],
+    'xor' : [0,1,1,0]
+}
+
+df = pd.DataFrame(data)
+df
+
+inputs = df[['x1', 'x2']]
+
+sns.scatterplot(x=df.x1, y=df.x2, hue=df['and'])
+andP.fit(inputs, df['and'])
+print("And Score : ", andP.score(inputs, df['and']))
+print("And Score : ", andP.predict(inputs))
+df['and_pred'] = andP.predict(inputs)
+
+x = inputs.to_numpy()
+y = df['and_pred'].to_numpy()
+plot_decision_regions(x,y, clf=andP,  legend=2)

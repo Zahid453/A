@@ -1,0 +1,119 @@
+from google.colab import files
+files.upload()
+
+!mkdir ~p ~/.kaggle
+!mv kaggle.json ~/.kaggle/
+!chmod 600 ~/.kaggle/kaggle.json
+
+!pip install kaggle --quiet
+
+!kaggle datasets download -d andrewmvd/pediatric-pneumonia-chest-xray
+
+
+import zipfile
+zip_ref = zipfile.ZipFile("/content/pediatric-pneumonia-chest-xray.zip", 'r')
+zip_ref.extractall('/content')
+zip_ref.close()
+
+
+import tensorflow as tf
+import keras
+import numpy as np
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten
+
+
+# Generators
+train_data = tf.keras.utils.image_dataset_from_directory(
+    directory="/content/Pediatric Chest X-ray Pneumonia/train",
+    labels="inferred",
+    label_mode="int",
+    batch_size=32,
+    image_size=(256, 256)
+)
+
+
+# Discriminators
+test_data = tf.keras.utils.image_dataset_from_directory(
+    directory="/content/Pediatric Chest X-ray Pneumonia/test",
+    labels="inferred",
+    label_mode="int",
+    batch_size=32,
+    image_size=(256, 256)
+)
+
+
+# Normalization function
+def normalize(image, label):
+    image = tf.cast(image, tf.float32) / 255.0   # convert to float32 and scale [0,1]
+    return image, label
+
+# Apply normalization
+train_data = train_data.map(normalize)
+test_data  = test_data.map(normalize)
+
+
+
+# CNN Model
+model = Sequential()
+
+# 1st Convolution + Pooling
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(256, 256, 3)))
+model.add(MaxPooling2D(pool_size=(2, 2), strides=2, padding='valid'))
+
+# 2nd Convolution + Pooling
+model.add(Conv2D(64, (3, 3), activation='relu', input_shape=(256, 256, 3)))
+model.add(MaxPooling2D(pool_size=(2, 2), strides=2, padding='valid'))
+
+# 3rd Convolution + Pooling
+model.add(Conv2D(128, (3, 3), activation='relu', input_shape=(256, 256, 3)))
+model.add(MaxPooling2D(pool_size=(2, 2), strides=2, padding='valid'))
+
+# Flatten
+model.add(Flatten())
+
+# Fully Connected Layers
+model.add(Dense(120, activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))  # binary classification (Pneumonia vs Normal)
+
+
+model.summary()
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+model.fit(train_data, epochs = 3, validation_data = test_data)
+
+
+# Test image loading
+from tensorflow.keras.utils import load_img, img_to_array
+import matplotlib.pyplot as plt
+import cv2
+
+# Load test image
+test_img = load_img('/content/Pediatric Chest X-ray Pneumonia/test/PNEUMONIA/person103_bacteria_488.jpeg', target_size=(256, 256))
+plt.imshow(test_img)
+plt.axis("off")
+plt.show()
+
+
+# Convert to array and preprocess
+test_img = img_to_array(test_img)
+test_img = test_img.reshape((1, 256, 256, 3)) / 255.0
+
+# Prediction
+prediction = model.predict(test_img)
+print("Prediction:", "Pneumonia" if prediction[0][0] > 0.5 else "Normal")
+
+
+test_img = np.array(test_img)
+test_img.shape
+
+# test_img = cv2.resize(test_img, (256,256))
+test_img = test_img.reshape(1, 256,256,3)
+
+
+if model.predict(test_img) == 1:
+  print("Pneomia")
+else:
+  print("Normal")
